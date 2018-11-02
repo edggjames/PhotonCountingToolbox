@@ -5,3 +5,5 @@ Also extracts all other useful parameters.
 
 Test scripts to:
   - Extract, visualise and save raw photon data from the four D1_DCS samples.
+  - Extract and save raw photon data from eight D2_DCS_AOT_DCS_Flow files (except sample 7 which is in 16 bit!)
+  - Extract and save raw photon data from two D2_DCS_AOT_DCS_Intralipid files
