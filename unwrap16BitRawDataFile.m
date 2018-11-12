@@ -2,7 +2,6 @@ function [f,T,duration,n,num_photons,abs_photon_times_clock,abs_photon_times_sec
     rel_photon_times_clock, rel_photon_times_seconds] ...
     = unwrap16BitRawDataFile(path_name,file_name)
 % Function to extract photon arrival time series from 16 bit Flex02 raw data 
-% need to complete this!!
 
 % Inputs
 % 1) path_name = path_name of data file
@@ -13,7 +12,7 @@ function [f,T,duration,n,num_photons,abs_photon_times_clock,abs_photon_times_sec
 % 1) f = system clock in Hz
 % 2) T = time unit in seconds
 % 3) duration = length of data collection in seconds
-% 4) n = length of measured data (includes all bytes which equal 255)
+% 4) n = length of measured data (includes all bytes which equal 65536)
 % 5) num_photons = number of photons recorded during entire data collection
 % 6) abs_photon_times_clock = vector of absolute photon arrival time series
 %    in system clock ticks
@@ -24,14 +23,14 @@ function [f,T,duration,n,num_photons,abs_photon_times_clock,abs_photon_times_sec
 %    photon and previous photon. 
 % 9) rel_photon_times_seconds = as above but in units of seconds.
 
-% Author: Edward James, PhD Student, UCL, October 2018.
+% Author: Edward James, PhD Student, UCL, November 2018.
 % e.james.14@ucl.ac.uk
 
-%% load data file
+%% load data file in 8 bit format 
 fileID = fopen(strcat(path_name,file_name),'r'); % open file for reading
-A = fread(fileID,'uint8'); % read data from binary file, in 16 bit (2 byte)
+A = fread(fileID,'uint8'); % read data from binary file, in 8 bit (1 byte)
 % unsigned integer format
-fclose(fileID);
+% fclose(fileID);
 
 file_format = A(1); % the first byte identifies the format of the file in bits
 % should be 16 bit here
@@ -41,10 +40,17 @@ if file_format ~= 16
 end
 f = A(2)*1e6; % the second byte identifies the system clock in MHz
 T = 1/f;  % calculate the time unit
+clear A
 
-rel_photon_times_clock = A(3:end); % the rest of the file contains the times
-% between two photon arrivals, except if value is 255, in which case no
-% photon has arrived and 255 time units have elapsed. The time unit is 
+%% load data file in 16 bit
+fileID = fopen(strcat(path_name,file_name),'r'); % open file for reading
+A = fread(fileID,'uint16'); % read data from binary file, in 16 bit (2 byte)
+% unsigned integer format
+fclose(fileID);
+
+rel_photon_times_clock = A(2:end); % the rest of the file contains the times
+% between two photon arrivals, except if value is 65536, in which case no
+% photon has arrived and 65536 time units have elapsed. The time unit is 
 % T = 1/(system clock) (here 16.66 ns).
 clear A
 
@@ -53,7 +59,7 @@ duration = sum(rel_photon_times_clock)*T;
 % calculate length of measured data
 n = length(rel_photon_times_clock);
 % calculate number of photons detected
-num_photons = n - sum(rel_photon_times_clock==255);
+num_photons = n - sum(rel_photon_times_clock==65536);
 
 %% loop through file and convert intervals between photon arrival times to
 % absolute arrival times
@@ -71,7 +77,7 @@ idx = 0;
 for i = 2:n
     % add current relative photon arrival time to delay
     delay = delay + rel_photon_times_clock(i);
-    if rel_photon_times_clock(i) ~= 255
+    if rel_photon_times_clock(i) ~= 65536
         % simply add delay to previous absolute photon arrival time
         abs_photon_times_clock(i) = abs_photon_times_clock(i-1-idx) + delay;
         % reset delay and idx counter
@@ -100,4 +106,3 @@ rel_photon_times_clock = diff(rel_photon_times_clock);
 % also calculate relative photon arrival times in seconds
 rel_photon_times_seconds = rel_photon_times_clock*T;
 end
-
